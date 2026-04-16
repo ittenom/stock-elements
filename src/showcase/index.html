@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stock Elements — Loading Bar</title>
+  </head>
+  <body>
+    <div id="app">
+      <div class="mx-auto max-w-4xl px-6 py-16 flex flex-col gap-12">
+        <header class="flex flex-col gap-2">
+          <div class="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">stock-elements</div>
+          <h1 class="text-3xl font-semibold">Loading Bar</h1>
+          <p class="text-sm text-[var(--color-muted)] max-w-prose">
+            A terminal-emulator-style pixelated progress indicator with three pre-baked themes.
+            Accepts real progress polling or indeterminate "fake" mode for open-ended work.
+          </p>
+        </header>
+
+        <section class="rounded-2xl border border-[var(--color-edge)] bg-[var(--color-surface)] p-10 flex items-center justify-center">
+          <sce-loading-bar id="bar" style="font-size: 1.5rem;"></sce-loading-bar>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="flex flex-col gap-2">
+            <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">Mode</label>
+            <select id="mode" class="bg-[var(--color-surface)] border border-[var(--color-edge)] rounded px-3 py-2 text-sm">
+              <option value="HORIZON">HORIZON</option>
+              <option value="NEON">NEON</option>
+              <option value="SPECTRUM">SPECTRUM</option>
+            </select>
+          </div>
+
+          <div class="flex flex-col gap-2">
+            <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">
+              Randomness <span id="randomnessVal" class="text-[var(--color-fg)] ml-2">0.30</span>
+            </label>
+            <input id="randomness" type="range" min="0" max="1" step="0.05" value="0.3" />
+          </div>
+
+          <div class="flex flex-col gap-2">
+            <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">
+              Speed <span id="speedVal" class="text-[var(--color-fg)] ml-2">1.00</span>
+            </label>
+            <input id="speed" type="range" min="0.25" max="3" step="0.05" value="1" />
+          </div>
+
+          <div class="flex flex-col gap-2">
+            <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">
+              Progress <span id="progressVal" class="text-[var(--color-fg)] ml-2">0</span>
+            </label>
+            <input id="progress" type="range" min="0" max="100" step="1" value="0" />
+          </div>
+
+          <div class="flex flex-col gap-2">
+            <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">Heading</label>
+            <input id="heading" type="text" value="Loading"
+              class="bg-[var(--color-surface)] border border-[var(--color-edge)] rounded px-3 py-2 text-sm" />
+          </div>
+
+          <div class="flex flex-col gap-2">
+            <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">Caption</label>
+            <input id="caption" type="text" value="Please wait"
+              class="bg-[var(--color-surface)] border border-[var(--color-edge)] rounded px-3 py-2 text-sm" />
+          </div>
+        </section>
+
+        <section class="flex flex-wrap gap-3">
+          <button id="runTest" class="px-4 py-2 rounded bg-[var(--color-fg)] text-[var(--color-ink)] text-sm font-medium hover:opacity-90">
+            Run 20s test polling
+          </button>
+          <button id="toggleFake" class="px-4 py-2 rounded border border-[var(--color-edge)] text-sm hover:bg-[var(--color-surface)]">
+            Toggle fake mode
+          </button>
+          <button id="reset" class="px-4 py-2 rounded border border-[var(--color-edge)] text-sm hover:bg-[var(--color-surface)]">
+            Reset
+          </button>
+          <span id="status" class="text-xs text-[var(--color-muted)] self-center ml-2"></span>
+        </section>
+      </div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
