@@ -15,3 +15,65 @@ body {
   color: var(--color-fg);
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
+
+.kbd {
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+  background: var(--color-edge);
+  border-radius: 3px;
+  padding: 0 0.3rem;
+  color: var(--color-fg);
+}
+
+/* ---------------------------------------------------------------------
+   Showcase demo themes. These only override the CSS custom properties
+   that <sce-select> exposes — the component source never changes.
+   --------------------------------------------------------------------- */
+
+/* A light, paper-ish variant so the select pops against the dark page. */
+.sce-demo-light {
+  --sce-bg: #ffffff;
+  --sce-fg: #0f172a;
+  --sce-muted: #64748b;
+  --sce-border: #e2e8f0;
+  --sce-border-strong: #cbd5e1;
+  --sce-accent: #10b981;
+  --sce-accent-ring: rgba(16, 185, 129, 0.22);
+  --sce-highlight-bg: rgba(16, 185, 129, 0.12);
+  --sce-highlight-fg: #0f172a;
+  --sce-disabled-fg: #94a3b8;
+}
+
+/* Stockroom-adjacent: brand-blue trigger, green focus, graph-paper warmth. */
+.sce-demo-stockroom {
+  --sce-bg: #fffff7;
+  --sce-fg: hsl(220 13% 13%);
+  --sce-muted: hsl(220 9% 46%);
+  --sce-border: hsl(220 13% 91%);
+  --sce-border-strong: hsl(220 13% 75%);
+  --sce-accent: #22c55e;
+  --sce-accent-ring: rgba(34, 197, 94, 0.22);
+  --sce-highlight-bg: rgba(34, 197, 94, 0.14);
+  --sce-highlight-fg: hsl(220 13% 13%);
+}
+
+/* Dark surface, same green accent. */
+.sce-demo-dark {
+  --sce-bg: #0b1220;
+  --sce-fg: #e2e8f0;
+  --sce-muted: #64748b;
+  --sce-border: #1e293b;
+  --sce-border-strong: #334155;
+  --sce-accent: #10b981;
+  --sce-accent-ring: rgba(16, 185, 129, 0.28);
+  --sce-highlight-bg: rgba(16, 185, 129, 0.18);
+  --sce-highlight-fg: #f8fafc;
+  --sce-disabled-fg: #475569;
+  --sce-shadow-panel: 0 10px 30px rgba(0, 0, 0, 0.5),
+                      0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.theme-btn[aria-pressed='true'] {
+  border-color: #10b981;
+  color: #10b981;
+}

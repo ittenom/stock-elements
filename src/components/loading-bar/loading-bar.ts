@@ -8,7 +8,7 @@ import {
   DEFAULT_BLOCK_COUNT,
   MIN_BLOCK_COUNT,
   type LoadingBarMode,
-} from './types.ts';
+} from './types.js';
 import {
   MODE_CONFIG,
   NEON_PALETTE,
@@ -16,7 +16,7 @@ import {
   neonCyanBars,
   neonPinkBars,
   seededRandom,
-} from './modes.ts';
+} from './modes.js';
 
 const FLOURISH_MS = 400;
 

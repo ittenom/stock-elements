@@ -3,79 +3,168 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Stock Elements — Loading Bar</title>
+    <title>Stock Elements — Catalog</title>
   </head>
   <body>
-    <div id="app">
-      <div class="mx-auto max-w-4xl px-6 py-16 flex flex-col gap-12">
+    <div id="app" class="min-h-screen">
+      <div class="mx-auto max-w-6xl px-6 py-12 flex flex-col gap-16">
         <header class="flex flex-col gap-2">
           <div class="text-xs uppercase tracking-[0.3em] text-[var(--color-muted)]">stock-elements</div>
-          <h1 class="text-3xl font-semibold">Loading Bar</h1>
+          <h1 class="text-3xl font-semibold">Catalog</h1>
           <p class="text-sm text-[var(--color-muted)] max-w-prose">
-            A terminal-emulator-style pixelated progress indicator with three pre-baked themes.
-            Accepts real progress polling or indeterminate "fake" mode for open-ended work.
+            Framework-agnostic web components for the Stockroom family.
+            Each element ships with a React adapter and a documented
+            CSS custom property theming surface.
           </p>
+          <nav class="flex gap-2 text-xs mt-2">
+            <a href="#loading-bar" class="px-3 py-1 rounded-full border border-[var(--color-edge)] hover:bg-[var(--color-surface)]">Loading Bar</a>
+            <a href="#select" class="px-3 py-1 rounded-full border border-[var(--color-edge)] hover:bg-[var(--color-surface)]">Select</a>
+          </nav>
         </header>
 
-        <section class="rounded-2xl border border-[var(--color-edge)] bg-[var(--color-surface)] p-10 flex items-center justify-center">
-          <sce-loading-bar id="bar" style="font-size: 1.5rem;"></sce-loading-bar>
+        <!-- =============== LOADING BAR =============== -->
+        <section id="loading-bar" class="flex flex-col gap-8 scroll-mt-8">
+          <div class="flex items-baseline justify-between">
+            <h2 class="text-2xl font-semibold">Loading Bar</h2>
+            <code class="text-xs text-[var(--color-muted)]">&lt;sce-loading-bar&gt;</code>
+          </div>
+          <p class="text-sm text-[var(--color-muted)] max-w-prose">
+            Terminal-emulator-style pixelated progress indicator with three
+            pre-baked themes. Accepts real progress polling or indeterminate
+            "fake" mode for open-ended work.
+          </p>
+
+          <div class="rounded-2xl border border-[var(--color-edge)] bg-[var(--color-surface)] p-10 flex items-center justify-center">
+            <sce-loading-bar id="bar" style="font-size: 1.5rem;"></sce-loading-bar>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="flex flex-col gap-2">
+              <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">Mode</label>
+              <select id="mode" class="bg-[var(--color-surface)] border border-[var(--color-edge)] rounded px-3 py-2 text-sm">
+                <option value="HORIZON">HORIZON</option>
+                <option value="NEON">NEON</option>
+                <option value="SPECTRUM">SPECTRUM</option>
+              </select>
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">
+                Randomness <span id="randomnessVal" class="text-[var(--color-fg)] ml-2">0.30</span>
+              </label>
+              <input id="randomness" type="range" min="0" max="1" step="0.05" value="0.3" />
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">
+                Speed <span id="speedVal" class="text-[var(--color-fg)] ml-2">1.00</span>
+              </label>
+              <input id="speed" type="range" min="0.25" max="3" step="0.05" value="1" />
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">
+                Progress <span id="progressVal" class="text-[var(--color-fg)] ml-2">0</span>
+              </label>
+              <input id="progress" type="range" min="0" max="100" step="1" value="0" />
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">Heading</label>
+              <input id="heading" type="text" value="Loading"
+                class="bg-[var(--color-surface)] border border-[var(--color-edge)] rounded px-3 py-2 text-sm" />
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">Caption</label>
+              <input id="caption" type="text" value="Please wait"
+                class="bg-[var(--color-surface)] border border-[var(--color-edge)] rounded px-3 py-2 text-sm" />
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            <button id="runTest" class="px-4 py-2 rounded bg-[var(--color-fg)] text-[var(--color-ink)] text-sm font-medium hover:opacity-90">
+              Run 20s test polling
+            </button>
+            <button id="toggleFake" class="px-4 py-2 rounded border border-[var(--color-edge)] text-sm hover:bg-[var(--color-surface)]">
+              Toggle fake mode
+            </button>
+            <button id="reset" class="px-4 py-2 rounded border border-[var(--color-edge)] text-sm hover:bg-[var(--color-surface)]">
+              Reset
+            </button>
+            <span id="status" class="text-xs text-[var(--color-muted)] self-center ml-2"></span>
+          </div>
         </section>
 
-        <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="flex flex-col gap-2">
-            <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">Mode</label>
-            <select id="mode" class="bg-[var(--color-surface)] border border-[var(--color-edge)] rounded px-3 py-2 text-sm">
-              <option value="HORIZON">HORIZON</option>
-              <option value="NEON">NEON</option>
-              <option value="SPECTRUM">SPECTRUM</option>
-            </select>
+        <!-- =============== SELECT =============== -->
+        <section id="select" class="flex flex-col gap-8 scroll-mt-8">
+          <div class="flex items-baseline justify-between">
+            <h2 class="text-2xl font-semibold">Select</h2>
+            <code class="text-xs text-[var(--color-muted)]">&lt;sce-select&gt;</code>
+          </div>
+          <p class="text-sm text-[var(--color-muted)] max-w-prose">
+            Searchable single-select combobox that always clamps its panel to
+            the visible viewport and scrolls internally — a drop-in
+            replacement for native <code>&lt;select&gt;</code> or Radix Select
+            when the option list may exceed screen height. Keyboard-first:
+            <kbd class="kbd">↑</kbd> <kbd class="kbd">↓</kbd> navigate,
+            <kbd class="kbd">↵</kbd> select, <kbd class="kbd">esc</kbd> close,
+            type anywhere to filter.
+          </p>
+
+          <!-- Demo: New Purchase Order vendor picker with 75 vendors. -->
+          <div class="rounded-2xl border border-[var(--color-edge)] bg-[var(--color-surface)] p-8 grid md:grid-cols-2 gap-8">
+            <div class="flex flex-col gap-4">
+              <div>
+                <div class="text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">New Purchase Order</div>
+                <h3 class="text-lg font-semibold mt-1">Vendor</h3>
+              </div>
+              <sce-select
+                id="vendorSelect"
+                placeholder="Select vendor…"
+                search-placeholder="Search vendors…"
+                empty-text="No vendors match"
+                class="sce-demo-light"
+              ></sce-select>
+              <div id="vendorEcho" class="text-xs text-[var(--color-muted)] font-mono">No vendor selected.</div>
+              <button id="createDraft" class="self-start px-4 py-2 rounded bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                Create draft
+              </button>
+            </div>
+            <aside class="text-xs text-[var(--color-muted)] leading-relaxed space-y-2">
+              <p>75 vendors in the list. Scroll the page so the select is near the bottom of the viewport — the panel flips above the trigger. Resize the window to watch the panel clamp its height.</p>
+              <p>Also try typing immediately when the trigger is focused — the panel opens with your character already seeding the search field.</p>
+            </aside>
+          </div>
+
+          <!-- Edge cases -->
+          <div class="grid md:grid-cols-3 gap-6">
+            <div class="rounded-xl border border-[var(--color-edge)] bg-[var(--color-surface)] p-5 flex flex-col gap-3">
+              <div class="text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">Short list</div>
+              <sce-select id="smallSelect" placeholder="Pick a status…" class="sce-demo-light"></sce-select>
+              <p class="text-[11px] text-[var(--color-muted)]">Four options. Panel sizes to content, not the max-height.</p>
+            </div>
+            <div class="rounded-xl border border-[var(--color-edge)] bg-[var(--color-surface)] p-5 flex flex-col gap-3">
+              <div class="text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">Disabled</div>
+              <sce-select id="disabledSelect" disabled placeholder="Locked" class="sce-demo-light"></sce-select>
+              <p class="text-[11px] text-[var(--color-muted)]">Pointer and keyboard both refuse to open.</p>
+            </div>
+            <div class="rounded-xl border border-[var(--color-edge)] bg-[var(--color-surface)] p-5 flex flex-col gap-3">
+              <div class="text-xs uppercase tracking-[0.18em] text-[var(--color-muted)]">No search</div>
+              <sce-select id="noSearchSelect" searchable="false" placeholder="Pick a warehouse…" class="sce-demo-light"></sce-select>
+              <p class="text-[11px] text-[var(--color-muted)]">Search bar hidden for very short lists.</p>
+            </div>
           </div>
 
           <div class="flex flex-col gap-2">
-            <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">
-              Randomness <span id="randomnessVal" class="text-[var(--color-fg)] ml-2">0.30</span>
-            </label>
-            <input id="randomness" type="range" min="0" max="1" step="0.05" value="0.3" />
+            <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">Theme swatch</label>
+            <div class="flex gap-3 flex-wrap">
+              <button data-theme="default" class="theme-btn px-3 py-1.5 rounded border border-[var(--color-edge)] text-xs">Default (light)</button>
+              <button data-theme="stockroom" class="theme-btn px-3 py-1.5 rounded border border-[var(--color-edge)] text-xs">Stockroom green</button>
+              <button data-theme="dark" class="theme-btn px-3 py-1.5 rounded border border-[var(--color-edge)] text-xs">Dark</button>
+            </div>
+            <p class="text-[11px] text-[var(--color-muted)]">Swaps the <code>--sce-*</code> custom properties on the demo selects — the component itself is unchanged.</p>
           </div>
-
-          <div class="flex flex-col gap-2">
-            <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">
-              Speed <span id="speedVal" class="text-[var(--color-fg)] ml-2">1.00</span>
-            </label>
-            <input id="speed" type="range" min="0.25" max="3" step="0.05" value="1" />
-          </div>
-
-          <div class="flex flex-col gap-2">
-            <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">
-              Progress <span id="progressVal" class="text-[var(--color-fg)] ml-2">0</span>
-            </label>
-            <input id="progress" type="range" min="0" max="100" step="1" value="0" />
-          </div>
-
-          <div class="flex flex-col gap-2">
-            <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">Heading</label>
-            <input id="heading" type="text" value="Loading"
-              class="bg-[var(--color-surface)] border border-[var(--color-edge)] rounded px-3 py-2 text-sm" />
-          </div>
-
-          <div class="flex flex-col gap-2">
-            <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">Caption</label>
-            <input id="caption" type="text" value="Please wait"
-              class="bg-[var(--color-surface)] border border-[var(--color-edge)] rounded px-3 py-2 text-sm" />
-          </div>
-        </section>
-
-        <section class="flex flex-wrap gap-3">
-          <button id="runTest" class="px-4 py-2 rounded bg-[var(--color-fg)] text-[var(--color-ink)] text-sm font-medium hover:opacity-90">
-            Run 20s test polling
-          </button>
-          <button id="toggleFake" class="px-4 py-2 rounded border border-[var(--color-edge)] text-sm hover:bg-[var(--color-surface)]">
-            Toggle fake mode
-          </button>
-          <button id="reset" class="px-4 py-2 rounded border border-[var(--color-edge)] text-sm hover:bg-[var(--color-surface)]">
-            Reset
-          </button>
-          <span id="status" class="text-xs text-[var(--color-muted)] self-center ml-2"></span>
         </section>
       </div>
     </div>
