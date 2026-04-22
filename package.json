@@ -1,9 +1,32 @@
 {
   "name": "stock-elements",
   "version": "0.2.0",
-  "description": "Framework-agnostic web components for the Stockroom family.",
+  "description": "Framework-agnostic Lit web components for the Stockroom family — loading bar, searchable viewport-aware select, and more. Ships ESM + TypeScript types + optional React adapters.",
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
+  "author": "Federal Color <info@federalcolor.com> (https://federalcolor.com)",
+  "homepage": "https://github.com/ittenom/stock-elements#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ittenom/stock-elements.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ittenom/stock-elements/issues"
+  },
+  "keywords": [
+    "web-components",
+    "lit",
+    "lit-element",
+    "custom-elements",
+    "react",
+    "select",
+    "combobox",
+    "dropdown",
+    "loading",
+    "progress",
+    "stockroom",
+    "design-system"
+  ],
   "sideEffects": [
     "./dist/index.js",
     "./dist/components/loading-bar/index.js",
@@ -21,7 +44,8 @@
     "dist",
     "THEMING.md",
     "CONTRIBUTING.md",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "exports": {
     ".": {
@@ -46,13 +70,18 @@
     },
     "./package.json": "./package.json"
   },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "dev": "vite",
     "preview": "vite preview",
     "build": "vite build --config vite.lib.config.ts",
     "build:showcase": "tsc -p tsconfig.json --noEmit && vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "npm run typecheck && npm run test && npm run build"
   },
   "peerDependencies": {
     "lit": "^3.2.0",
