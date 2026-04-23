@@ -302,4 +302,143 @@ describe('<sce-select>', () => {
     el.remove();
     expect(document.body.querySelectorAll('[data-sce-select-portal]').length).toBe(0);
   });
+
+  /**
+   * End-to-end companion to the unit test in
+   * `src/lib/react-adapter.test.tsx`: the "no search bar, no footer"
+   * symptom consumers actually see (Stockroom v0.2.2) is that when the
+   * adapter forwards `undefined` into `searchable`, both the search
+   * bar and the footer template branches collapse out. This test
+   * drives the element directly (no React) and asserts that the
+   * branches render when `searchable` holds its declared default.
+   */
+  it('renders both the search bar and the footer when `searchable` holds its default', async () => {
+    const el = document.createElement('sce-select') as SceSelect;
+    // Mirror the fixed adapter: assign defined props, skip undefined.
+    const adapterProps: Record<string, unknown> = {
+      options: vendors,
+      placeholder: 'Select vendor',
+      // `searchable` intentionally not set — consumer omitted it.
+    };
+    for (const [k, v] of Object.entries(adapterProps)) {
+      if (v === undefined) continue;
+      (el as unknown as Record<string, unknown>)[k] = v;
+    }
+    document.body.appendChild(el);
+    await el.updateComplete;
+
+    // The declared default (true) must still be in force.
+    expect(el.searchable).toBe(true);
+
+    // And the rendered panel must contain both a search input and a footer.
+    el.shadowRoot!.querySelector<HTMLButtonElement>('.trigger')!.click();
+    await el.updateComplete;
+    expect(panelRoot(el).querySelector('.search input')).not.toBeNull();
+    expect(panelRoot(el).querySelector('.footer')).not.toBeNull();
+  });
+
+  /**
+   * Regression guard for the Stockroom modal scroll-wheel bug (v0.2.2):
+   *
+   * Radix Dialog wraps its overlay in <RemoveScroll> (react-remove-scroll),
+   * which installs a document-level capturing non-passive wheel listener
+   * and preventDefault()s any wheel event whose target is not inside the
+   * dialog's whitelisted content ref. Our portal is a SIBLING of the
+   * dialog content, so native wheel-to-scroll is cancelled before the
+   * browser can act.
+   *
+   * The fix is a wheel listener of our own on the portal host that
+   * moves `scrollTop` in JavaScript. This test asserts a wheel event
+   * delivered over the list does (a) scroll the list by the event's
+   * deltaY and (b) call preventDefault (which is what stops Radix's
+   * handler from double-cancelling the no-op native scroll).
+   */
+  it('scrolls the list in response to wheel events (bypasses RemoveScroll)', async () => {
+    const el = await mount();
+    el.options = Array.from({ length: 50 }, (_, i) => ({
+      value: `v${i}`,
+      label: `Vendor ${i}`,
+    }));
+    await el.updateComplete;
+    el.shadowRoot!.querySelector<HTMLButtonElement>('.trigger')!.click();
+    await el.updateComplete;
+
+    const list = panelRoot(el).querySelector<HTMLDivElement>('.list')!;
+    const startTop = list.scrollTop;
+
+    const wheel = new WheelEvent('wheel', {
+      deltaY: 80,
+      deltaMode: 0,
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+    });
+    list.dispatchEvent(wheel);
+
+    expect(list.scrollTop).toBe(startTop + 80);
+    expect(wheel.defaultPrevented).toBe(true);
+  });
+
+  /**
+   * Regression guard for the Stockroom modal scrollbar-click bug (v0.2.2):
+   *
+   * Clicking a native scrollbar fires `pointerdown` with `event.target`
+   * retargeted to `<html>` or the document, so `composedPath()` won't
+   * include our portal — the outside-click detector closes the panel.
+   * Fix: fall back to a rect hit-test against the panel bounding box,
+   * which includes the scrollbar gutter.
+   *
+   * jsdom doesn't do layout, so `getBoundingClientRect()` returns zeros
+   * by default. We stub it to model a 200x200 panel at (100, 100) and
+   * dispatch a pointerdown event whose target is `<html>` (matching the
+   * browser's retargeting) but whose clientX/Y land inside the rect.
+   */
+  it('does not close when pointerdown coords fall inside the panel rect (scrollbar click)', async () => {
+    const el = await mount();
+    el.shadowRoot!.querySelector<HTMLButtonElement>('.trigger')!.click();
+    await el.updateComplete;
+
+    const panel = panelRoot(el).querySelector<HTMLElement>('.panel')!;
+    // Simulate layout: panel occupies (100..300, 100..300) in the viewport.
+    const rect = {
+      left: 100, right: 300, top: 100, bottom: 300,
+      x: 100, y: 100, width: 200, height: 200,
+      toJSON() { return this; },
+    } as DOMRect;
+    panel.getBoundingClientRect = () => rect;
+
+    // Pointer event retargeted to <html>, but coordinates land inside
+    // the panel (including its scrollbar gutter at the right edge).
+    // jsdom doesn't ship `PointerEvent`, but a `MouseEvent` dispatched
+    // with type "pointerdown" carries the same `clientX/Y` and
+    // `composedPath` we rely on.
+    const pd = new MouseEvent('pointerdown', {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      clientX: 295, // near the right edge — the scrollbar zone
+      clientY: 150,
+    });
+    document.documentElement.dispatchEvent(pd);
+    await el.updateComplete;
+
+    expect(
+      el.shadowRoot!.querySelector('.trigger')!.getAttribute('aria-expanded'),
+    ).toBe('true');
+
+    // And the baseline still closes on a genuine outside click: coords
+    // far from the panel, target = <body>.
+    const outside = new MouseEvent('pointerdown', {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      clientX: 5,
+      clientY: 5,
+    });
+    document.body.dispatchEvent(outside);
+    await el.updateComplete;
+    expect(
+      el.shadowRoot!.querySelector('.trigger')!.getAttribute('aria-expanded'),
+    ).toBe('false');
+  });
 });

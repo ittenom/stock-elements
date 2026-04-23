@@ -64,13 +64,21 @@ export function createReactAdapter<
 
     // useLayoutEffect: set properties before the browser paints so the
     // first render shows the correct state, not the default state flashing.
+    //
+    // We MUST skip `undefined` values. A Lit `@property` has a declared
+    // default (e.g. `searchable = true`), and the consumer expects that
+    // default when they don't pass the prop at all. Writing `undefined`
+    // to the property replaces the default — the element sees `undefined`,
+    // which is falsy, and `${this.searchable ? … : null}` collapses to
+    // nothing. `null` is NOT treated the same: it's a legitimate cleared
+    // value (`<Component value={null} />` means "clear selection") and
+    // must still be written through.
     useLayoutEffect(() => {
       const el = elRef.current;
       if (!el) return;
       for (const key of properties) {
         const value = (props as AnyProps)[key];
-        // Always assign — writing `undefined` is fine and lets the element
-        // fall back to its @property default.
+        if (value === undefined) continue;
         (el as unknown as AnyProps)[key] = value;
       }
     });

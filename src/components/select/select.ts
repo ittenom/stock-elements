@@ -383,8 +383,28 @@ export class SceSelect extends LitElement {
     // "inside" the component for close-on-outside-click purposes.
     if (path.includes(this)) return;
     if (this.panelHost && path.includes(this.panelHost)) return;
+    // Scrollbar edge case: when the user clicks a native scrollbar,
+    // most browsers fire `pointerdown` with `event.target` retargeted
+    // to `<html>` or the document rather than the scrollable element,
+    // so `composedPath()` doesn't include our portal. Fall back to a
+    // rect hit-test against the panel — its bounding rect DOES include
+    // the scrollbar gutter. If the pointer is inside that rect, treat
+    // it as an inside click.
+    if (this.panelRoot && this.isPointerInsidePanel(e)) return;
     this.closePanel();
   };
+
+  private isPointerInsidePanel(e: PointerEvent): boolean {
+    const panel = this.panelRoot?.querySelector('.panel') as HTMLElement | null;
+    if (!panel) return false;
+    const r = panel.getBoundingClientRect();
+    return (
+      e.clientX >= r.left &&
+      e.clientX <= r.right &&
+      e.clientY >= r.top &&
+      e.clientY <= r.bottom
+    );
+  }
   private readonly onWindowResize = () => {
     if (this.open) this.reposition();
   };
@@ -393,6 +413,47 @@ export class SceSelect extends LitElement {
     // Ignore scrolls inside our own list — those should not reposition.
     if (e.target instanceof Node && this.listEl?.contains(e.target)) return;
     this.reposition();
+  };
+
+  /**
+   * Scroll the list programmatically from wheel events.
+   *
+   * Why this is necessary even though `.list { overflow-y: auto }` would
+   * normally be enough: when `<sce-select>` is opened inside a Radix
+   * Dialog (or anything using `react-remove-scroll`), a document-level
+   * capturing non-passive wheel listener lives upstream of us and
+   * `preventDefault()`s every wheel event whose target isn't inside the
+   * dialog's whitelisted "shards" ref. Our portal is a sibling of the
+   * dialog, not a descendant, so native scroll inside our panel is
+   * suppressed before the browser can act on it.
+   *
+   * The fix is to scroll the list ourselves in JavaScript. Radix can
+   * still cancel the default — we've already moved `scrollTop`, so the
+   * user sees the list scroll. We also `preventDefault()` + `stopPropagation()`
+   * for good measure: if we're NOT inside a RemoveScroll container,
+   * this keeps the outer page from bonus-scrolling, matching native
+   * overflow behavior. Passive must be `false` or `preventDefault()`
+   * is a no-op; that's why this can't be wired via Lit's `@wheel=`
+   * template attribute.
+   */
+  private readonly onPanelWheel = (e: WheelEvent): void => {
+    if (!this.open) return;
+    const list = this.listEl;
+    if (!list) return;
+    // The listener is attached on the portal SHADOW ROOT, so
+    // `event.target` is the element inside the shadow where the event
+    // originated (no retargeting across the boundary yet). If it had
+    // been attached on the host we'd receive `host` as the retargeted
+    // target and this check would always fail.
+    if (!list.contains(e.target as Node)) return;
+    // Normalize deltaMode to pixels. 0 = pixel, 1 = line, 2 = page.
+    const lineHeight = 16;
+    const factor =
+      e.deltaMode === 1 ? lineHeight : e.deltaMode === 2 ? list.clientHeight : 1;
+    list.scrollTop += e.deltaY * factor;
+    list.scrollLeft += e.deltaX * factor;
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   connectedCallback(): void {
@@ -410,7 +471,14 @@ export class SceSelect extends LitElement {
     window.removeEventListener('scroll', this.onWindowScroll, true);
     // Tear the portal host back down so we don't leak a <div> per
     // mount/unmount cycle. `render(null, root)` disposes Lit parts.
-    if (this.panelRoot) render(null, this.panelRoot);
+    if (this.panelRoot) {
+      this.panelRoot.removeEventListener(
+        'wheel',
+        this.onPanelWheel as EventListener,
+        { capture: true },
+      );
+      render(null, this.panelRoot);
+    }
     this.panelHost?.remove();
     this.panelHost = null;
     this.panelRoot = null;
@@ -444,6 +512,18 @@ export class SceSelect extends LitElement {
       root.appendChild(style);
     }
     document.body.appendChild(host);
+    // Non-passive wheel listener so we can call preventDefault() inside
+    // Radix's RemoveScroll. Attached to the SHADOW ROOT (not the host)
+    // so `event.target` inside the handler still points at the
+    // shadow-internal originator — retargeting only happens on
+    // crossings between the shadow tree and the light tree. Capture
+    // phase so we run before any listener a content author might add
+    // inside the panel template.
+    root.addEventListener(
+      'wheel',
+      this.onPanelWheel as EventListener,
+      { passive: false, capture: true },
+    );
     this.panelHost = host;
     this.panelRoot = root;
   }
