@@ -441,4 +441,94 @@ describe('<sce-select>', () => {
       el.shadowRoot!.querySelector('.trigger')!.getAttribute('aria-expanded'),
     ).toBe('false');
   });
+
+  /**
+   * Regression guard for the Stockroom "selecting an option closes the
+   * whole modal" bug (v0.2.3):
+   *
+   * Radix Dialog's `DismissableLayer` listens for `pointerdown` on
+   * `document` and decides "outside" by a React-tree check (a ref
+   * flipped by `onPointerDownCapture` on its own React element).
+   * Because our portal lives in the DOM but NOT in Radix's React
+   * tree, the React-tree ref stays false on every option click and
+   * Radix dismisses the dialog. Calling `preventDefault()` on the
+   * native pointerdown is ignored by Radix; the only mechanism that
+   * works without forcing every consumer to wrap our component is to
+   * stop the event from reaching the document-level listener at all.
+   *
+   * This test simulates Radix's setup: a `pointerdown` listener on
+   * `document` that registers AFTER ours (Radix uses `setTimeout(0)`,
+   * so it always loses the registration race against our synchronous
+   * `connectedCallback` registration). It must NOT fire on a click
+   * inside our panel, but MUST fire on a click outside.
+   */
+  it('stops in-panel pointerdown from reaching ancestor document listeners (Radix Dialog dismiss)', async () => {
+    const el = await mount();
+    el.shadowRoot!.querySelector<HTMLButtonElement>('.trigger')!.click();
+    await el.updateComplete;
+
+    // Mimic Radix's listener: registered on document AFTER ours.
+    const radixSpy = vi.fn();
+    document.addEventListener('pointerdown', radixSpy, { capture: true });
+
+    // Click an option inside the portal panel.
+    const option = panelRoot(el).querySelector<HTMLElement>('.option')!;
+    const pd = new MouseEvent('pointerdown', {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      clientX: 0,
+      clientY: 0,
+    });
+    option.dispatchEvent(pd);
+
+    // Radix-equivalent listener must not have fired — that's the fix.
+    expect(radixSpy).not.toHaveBeenCalled();
+
+    // But a click OUTSIDE the panel must still propagate to ancestors.
+    const outsidePd = new MouseEvent('pointerdown', {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      clientX: 5000,
+      clientY: 5000,
+    });
+    document.body.dispatchEvent(outsidePd);
+    expect(radixSpy).toHaveBeenCalledTimes(1);
+
+    document.removeEventListener('pointerdown', radixSpy, { capture: true });
+  });
+
+  /**
+   * The fix above must NOT break the actual click handler on options.
+   * Stopping pointerdown is fine, but if we'd also stopped click
+   * propagation from `document` capture, the @click handler on
+   * `.option` (which lives downstream of document in the capture/target
+   * sequence) would never fire and selection would silently fail. Pin
+   * the contract so a future "let's also stop click for symmetry"
+   * change doesn't quietly break selection.
+   */
+  it('still emits sce-change on option click after a pointerdown event (no click suppression)', async () => {
+    const el = await mount();
+    el.shadowRoot!.querySelector<HTMLButtonElement>('.trigger')!.click();
+    await el.updateComplete;
+
+    const spy = vi.fn();
+    el.addEventListener('sce-change', (e) =>
+      spy((e as CustomEvent<SceSelectChangeDetail>).detail),
+    );
+
+    const option = panelRoot(el).querySelectorAll<HTMLElement>('.option')[1];
+    // Simulate the natural pointerdown → click sequence the browser fires.
+    option.dispatchEvent(
+      new MouseEvent('pointerdown', { bubbles: true, cancelable: true, composed: true }),
+    );
+    option.click();
+    await el.updateComplete;
+
+    expect(spy).toHaveBeenCalledWith({
+      value: 'b',
+      option: expect.objectContaining({ value: 'b', label: 'Bolt Supply' }),
+    });
+  });
 });

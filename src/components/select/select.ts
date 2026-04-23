@@ -375,24 +375,59 @@ export class SceSelect extends LitElement {
     return this.panelRoot?.querySelector<HTMLInputElement>('.search input') ?? null;
   }
 
-  /** Bound so add/remove pair matches on global listeners. */
+  /**
+   * Capture-phase document listener for outside-click dismissal AND
+   * for keeping ancestor outside-click detectors (e.g. Radix Dialog,
+   * Radix Popover, HeadlessUI Dialog) from misclassifying clicks
+   * inside our portaled panel as "outside".
+   *
+   * Why we have to actively stop propagation: when `<sce-select>` is
+   * mounted inside a Radix `Dialog`, Radix's `DismissableLayer`
+   * decides "outside" by a React-tree check (an `onPointerDownCapture`
+   * on its own div flips a ref). Our portal is a sibling of
+   * `DialogContent` in the DOM but NOT a React-tree descendant, so the
+   * ref stays false on every option click and Radix dismisses the
+   * dialog. There is no `data-radix-*` opt-out and `event.preventDefault`
+   * on the native pointerdown is ignored by Radix. The only mechanism
+   * that works without forcing every consumer to wrap our component is
+   * to make sure the ancestor's document-level listener never sees the
+   * event in the first place.
+   *
+   * `stopImmediatePropagation` is safe here because we register first
+   * (synchronously in `connectedCallback`, before any React `useEffect`
+   * /`setTimeout(0)` registration upstream of us) and we only stop
+   * events that actually originated inside our panel. Any other
+   * outside-click detector should — by definition — also treat clicks
+   * inside our panel as not-their-business.
+   */
   private readonly onDocPointerDown = (e: PointerEvent) => {
     if (!this.open) return;
-    const path = e.composedPath();
-    // Clicks on the trigger OR anywhere inside the portaled panel are
-    // "inside" the component for close-on-outside-click purposes.
-    if (path.includes(this)) return;
-    if (this.panelHost && path.includes(this.panelHost)) return;
-    // Scrollbar edge case: when the user clicks a native scrollbar,
-    // most browsers fire `pointerdown` with `event.target` retargeted
-    // to `<html>` or the document rather than the scrollable element,
-    // so `composedPath()` doesn't include our portal. Fall back to a
-    // rect hit-test against the panel — its bounding rect DOES include
-    // the scrollbar gutter. If the pointer is inside that rect, treat
-    // it as an inside click.
-    if (this.panelRoot && this.isPointerInsidePanel(e)) return;
+    if (this.isEventInsideUs(e)) {
+      e.stopImmediatePropagation();
+      return;
+    }
     this.closePanel();
   };
+
+  /**
+   * Is this pointer/mouse event inside the trigger or panel?
+   *
+   * Three checks because each catches a real case the others miss:
+   *  1. `composedPath().includes(this)` — clicks on the trigger.
+   *  2. `composedPath().includes(panelHost)` — clicks inside the panel
+   *     content (event target is in the portal's shadow tree).
+   *  3. Geometric hit-test against the panel rect — clicks on the
+   *     native scrollbar retarget `event.target` to `<html>` so neither
+   *     path check sees us; the rect check (which includes the
+   *     scrollbar gutter) catches them.
+   */
+  private isEventInsideUs(e: PointerEvent): boolean {
+    const path = e.composedPath();
+    if (path.includes(this)) return true;
+    if (this.panelHost && path.includes(this.panelHost)) return true;
+    if (this.panelRoot && this.isPointerInsidePanel(e)) return true;
+    return false;
+  }
 
   private isPointerInsidePanel(e: PointerEvent): boolean {
     const panel = this.panelRoot?.querySelector('.panel') as HTMLElement | null;
