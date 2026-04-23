@@ -26,6 +26,24 @@ async function mount(): Promise<SceSelect> {
   return el;
 }
 
+/**
+ * The panel lives in a document-level portal (a `<div
+ * data-sce-select-portal>` appended to `<body>`), not in the element's
+ * own shadow root. Route all panel-side queries through this helper so
+ * a future portal-implementation tweak touches one line of test code.
+ */
+function panelRoot(el: SceSelect): ShadowRoot {
+  const host = document.querySelector<HTMLDivElement>('[data-sce-select-portal]');
+  if (!host || !host.shadowRoot) {
+    throw new Error('Panel portal host is missing — did the element connect?');
+  }
+  // Sanity: confirm the portal belongs to this element. There is only
+  // one `<sce-select>` per test, but asserting keeps us honest if that
+  // ever changes.
+  void el;
+  return host.shadowRoot;
+}
+
 describe('<sce-select>', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
@@ -59,7 +77,7 @@ describe('<sce-select>', () => {
     const trigger = el.shadowRoot!.querySelector<HTMLButtonElement>('.trigger')!;
     trigger.click();
     await el.updateComplete;
-    const options = el.shadowRoot!.querySelectorAll('.option');
+    const options = panelRoot(el).querySelectorAll('.option');
     expect(options.length).toBe(vendors.length);
     expect(trigger.getAttribute('aria-expanded')).toBe('true');
   });
@@ -68,11 +86,11 @@ describe('<sce-select>', () => {
     const el = await mount();
     el.shadowRoot!.querySelector<HTMLButtonElement>('.trigger')!.click();
     await el.updateComplete;
-    const input = el.shadowRoot!.querySelector<HTMLInputElement>('.search input')!;
+    const input = panelRoot(el).querySelector<HTMLInputElement>('.search input')!;
     input.value = 'seattle';
     input.dispatchEvent(new Event('input'));
     await el.updateComplete;
-    const options = el.shadowRoot!.querySelectorAll('.option');
+    const options = panelRoot(el).querySelectorAll('.option');
     expect(options.length).toBe(1);
     expect(options[0].textContent).toContain('Cascade');
   });
@@ -85,7 +103,7 @@ describe('<sce-select>', () => {
     );
     el.shadowRoot!.querySelector<HTMLButtonElement>('.trigger')!.click();
     await el.updateComplete;
-    const secondRow = el.shadowRoot!.querySelectorAll<HTMLElement>('.option')[1];
+    const secondRow = panelRoot(el).querySelectorAll<HTMLElement>('.option')[1];
     secondRow.click();
     await el.updateComplete;
     expect(spy).toHaveBeenCalledWith({
@@ -102,7 +120,7 @@ describe('<sce-select>', () => {
     el.shadowRoot!.querySelector<HTMLButtonElement>('.trigger')!.click();
     await el.updateComplete;
     // Active starts at the currently-selected option (index 0). ↓ moves to 1.
-    const panel = el.shadowRoot!.querySelector('.panel') as HTMLElement;
+    const panel = panelRoot(el).querySelector('.panel') as HTMLElement;
     panel.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }),
     );
@@ -120,7 +138,7 @@ describe('<sce-select>', () => {
     await el.updateComplete;
     el.shadowRoot!.querySelector<HTMLButtonElement>('.trigger')!.click();
     await el.updateComplete;
-    const panel = el.shadowRoot!.querySelector('.panel') as HTMLElement;
+    const panel = panelRoot(el).querySelector('.panel') as HTMLElement;
     panel.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
     );
@@ -134,12 +152,12 @@ describe('<sce-select>', () => {
     const el = await mount();
     el.shadowRoot!.querySelector<HTMLButtonElement>('.trigger')!.click();
     await el.updateComplete;
-    const input = el.shadowRoot!.querySelector<HTMLInputElement>('.search input')!;
+    const input = panelRoot(el).querySelector<HTMLInputElement>('.search input')!;
     input.value = 'xyzzy';
     input.dispatchEvent(new Event('input'));
     await el.updateComplete;
-    expect(el.shadowRoot!.querySelector('.empty')).not.toBeNull();
-    expect(el.shadowRoot!.querySelectorAll('.option').length).toBe(0);
+    expect(panelRoot(el).querySelector('.empty')).not.toBeNull();
+    expect(panelRoot(el).querySelectorAll('.option').length).toBe(0);
   });
 
   it('refuses to open when disabled', async () => {
@@ -163,7 +181,7 @@ describe('<sce-select>', () => {
     await el.updateComplete;
     el.shadowRoot!.querySelector<HTMLButtonElement>('.trigger')!.click();
     await el.updateComplete;
-    const panel = el.shadowRoot!.querySelector('.panel') as HTMLElement;
+    const panel = panelRoot(el).querySelector('.panel') as HTMLElement;
     // Active starts on first enabled (index 0). ↓ should land on 'c', not 'b'.
     panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
     await el.updateComplete;
@@ -178,7 +196,7 @@ describe('<sce-select>', () => {
     await el.updateComplete;
     el.shadowRoot!.querySelector<HTMLButtonElement>('.trigger')!.click();
     await el.updateComplete;
-    expect(el.shadowRoot!.querySelector('.search')).toBeNull();
+    expect(panelRoot(el).querySelector('.search')).toBeNull();
   });
 
   /**
@@ -221,5 +239,67 @@ describe('<sce-select>', () => {
     for (const body of hostBlocks) {
       expect(body).not.toMatch(/--sce-[\w-]+\s*:/);
     }
+  });
+
+  /**
+   * Regression guard for the Stockroom modal bug (v0.2.1):
+   *
+   * shadcn's `DialogContent` centers itself with
+   * `translate-x-[-50%] translate-y-[-50%]`. A transformed ancestor
+   * becomes the containing block for all `position: fixed`
+   * descendants, so a dropdown panel opened inside the dialog would
+   * re-anchor to the dialog's rect and be clipped by its
+   * `overflow-hidden`. `backdrop-filter` has the same effect and
+   * shows up on the modal's form card.
+   *
+   * The fix is to render the panel into a document-level portal that
+   * is a direct child of `<body>`, escaping every ancestor's
+   * containing block and stacking context. This test simulates the
+   * hazardous ancestor and asserts the panel is *not* a descendant of
+   * the element's own shadow root.
+   */
+  it('renders the panel into a document-level portal, not its own shadow root', async () => {
+    const transformed = document.createElement('div');
+    transformed.style.transform = 'translate(-50%, -50%)';
+    transformed.style.backdropFilter = 'blur(12px)';
+    document.body.appendChild(transformed);
+
+    const el = document.createElement('sce-select') as SceSelect;
+    el.options = vendors;
+    transformed.appendChild(el);
+    await el.updateComplete;
+
+    el.shadowRoot!.querySelector<HTMLButtonElement>('.trigger')!.click();
+    await el.updateComplete;
+
+    // No `.panel` inside the main shadow root…
+    expect(el.shadowRoot!.querySelector('.panel')).toBeNull();
+
+    // …but there IS one in a portal host attached to <body>.
+    const portalHost = document.body.querySelector<HTMLDivElement>(
+      '[data-sce-select-portal]',
+    );
+    expect(portalHost).not.toBeNull();
+    expect(portalHost!.parentElement).toBe(document.body);
+    // And the portal host is NOT a descendant of the transformed
+    // wrapper — that's the whole point.
+    expect(transformed.contains(portalHost!)).toBe(false);
+
+    const panel = portalHost!.shadowRoot!.querySelector('.panel');
+    expect(panel).not.toBeNull();
+    expect(panel!.classList.contains('open')).toBe(true);
+  });
+
+  /**
+   * The portal host is created in `connectedCallback` and torn down in
+   * `disconnectedCallback`. Without the teardown, every mount/unmount
+   * cycle (common under React StrictMode, hot-reload, or route
+   * transitions) would leak a `<div>` to `<body>`. Guard against that.
+   */
+  it('removes its portal host from <body> on disconnect', async () => {
+    const el = await mount();
+    expect(document.body.querySelectorAll('[data-sce-select-portal]').length).toBe(1);
+    el.remove();
+    expect(document.body.querySelectorAll('[data-sce-select-portal]').length).toBe(0);
   });
 });

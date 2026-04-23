@@ -39,17 +39,23 @@
  *   Typing in the search input filters the list in real time; ↑/↓/Enter/Esc
  *   still work without leaving the input (focus stays on the input).
  *
- * Known limitations
- *   Panel is positioned with `position: fixed`. If an ancestor sets
- *   `transform`, `filter`, `perspective`, or `will-change: transform`
- *   it becomes a containing block for fixed descendants and the panel
- *   will anchor to that ancestor instead of the viewport. The app's
- *   New PO flow has no such ancestors, but consumers who need to nest
- *   this inside a transformed container should either remove the
- *   transform or render <sce-select> outside it.
+ * Containing-block escape (why the panel portals)
+ *   The open panel is rendered into a document-level shadow root hosted
+ *   on a `<div>` appended to `document.body` — not inside the element's
+ *   own shadow DOM. This is the only reliable way to avoid ancestor
+ *   containing-block traps: any ancestor with `transform`, `filter`,
+ *   `backdrop-filter`, `perspective`, `will-change`, or `contain`
+ *   becomes the containing block for `position: fixed` descendants,
+ *   which breaks viewport-anchored popups inside modals (shadcn's
+ *   `DialogContent` uses `translate-x-[-50%] translate-y-[-50%]` to
+ *   center itself — a transform — so inline popups would be clipped
+ *   by the dialog). Because the portal host is a direct child of
+ *   `<body>`, every `--sce-*` theme token set on `:root` still
+ *   inherits into the panel's shadow root via the DOM tree, so the
+ *   theming contract in THEMING.md is unaffected.
  */
 
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, render, type CSSResult, type TemplateResult } from 'lit';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { styleMap } from 'lit/directives/style-map.js';
@@ -349,14 +355,34 @@ export class SceSelect extends LitElement {
   };
 
   @query('.trigger') private triggerEl!: HTMLButtonElement;
-  @query('.list') private listEl!: HTMLDivElement;
-  @query('.search input') private searchInput?: HTMLInputElement;
+
+  /**
+   * The portal host — a `<div>` we append to `document.body` when the
+   * element connects. Its shadow root receives the floating panel so
+   * ancestor transforms/filters/backdrop-filters can't form a
+   * containing block around it. See the header comment for the full
+   * rationale.
+   */
+  private panelHost: HTMLDivElement | null = null;
+  /** Shadow root on {@link panelHost}; null until connected. */
+  private panelRoot: ShadowRoot | null = null;
+  /** Queried within {@link panelRoot}, not the main shadow. */
+  private get listEl(): HTMLDivElement | null {
+    return this.panelRoot?.querySelector<HTMLDivElement>('.list') ?? null;
+  }
+  /** Queried within {@link panelRoot}, not the main shadow. */
+  private get searchInput(): HTMLInputElement | null {
+    return this.panelRoot?.querySelector<HTMLInputElement>('.search input') ?? null;
+  }
 
   /** Bound so add/remove pair matches on global listeners. */
   private readonly onDocPointerDown = (e: PointerEvent) => {
     if (!this.open) return;
     const path = e.composedPath();
+    // Clicks on the trigger OR anywhere inside the portaled panel are
+    // "inside" the component for close-on-outside-click purposes.
     if (path.includes(this)) return;
+    if (this.panelHost && path.includes(this.panelHost)) return;
     this.closePanel();
   };
   private readonly onWindowResize = () => {
@@ -371,6 +397,7 @@ export class SceSelect extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    this.ensurePanelHost();
     document.addEventListener('pointerdown', this.onDocPointerDown, true);
     window.addEventListener('resize', this.onWindowResize);
     window.addEventListener('scroll', this.onWindowScroll, true);
@@ -381,6 +408,44 @@ export class SceSelect extends LitElement {
     document.removeEventListener('pointerdown', this.onDocPointerDown, true);
     window.removeEventListener('resize', this.onWindowResize);
     window.removeEventListener('scroll', this.onWindowScroll, true);
+    // Tear the portal host back down so we don't leak a <div> per
+    // mount/unmount cycle. `render(null, root)` disposes Lit parts.
+    if (this.panelRoot) render(null, this.panelRoot);
+    this.panelHost?.remove();
+    this.panelHost = null;
+    this.panelRoot = null;
+  }
+
+  /**
+   * Lazily create the portal host on first connect. Idempotent so that
+   * disconnecting + reconnecting (e.g. when the element is moved across
+   * the DOM) still works without leaking hosts.
+   */
+  private ensurePanelHost(): void {
+    if (this.panelHost) return;
+    const host = document.createElement('div');
+    host.setAttribute('data-sce-select-portal', '');
+    // `display: contents` keeps the host out of the layout — it exists
+    // only as a DOM anchor for the shadow root. `position: fixed` on
+    // its descendants remains viewport-fixed because no containing
+    // block is formed here.
+    host.style.display = 'contents';
+    const root = host.attachShadow({ mode: 'open' });
+    // Reuse the element's compiled stylesheet so both roots stay in
+    // lockstep automatically: any future CSS edit ships to both.
+    const styles = (this.constructor as typeof SceSelect).styles as CSSResult;
+    const sheet = styles.styleSheet;
+    if (sheet) {
+      root.adoptedStyleSheets = [sheet];
+    } else {
+      // Fallback for environments without constructable stylesheets.
+      const style = document.createElement('style');
+      style.textContent = styles.cssText;
+      root.appendChild(style);
+    }
+    document.body.appendChild(host);
+    this.panelHost = host;
+    this.panelRoot = root;
   }
 
   // ----- Derived --------------------------------------------------------
@@ -548,7 +613,14 @@ export class SceSelect extends LitElement {
         this.selectIndex(this.activeIndex);
         return;
       case 'Tab':
-        // Let focus leave naturally; just close.
+        // Focus is currently inside the portaled panel (a detached
+        // subtree at the end of <body>). If we just close, focus goes
+        // to <body> and Tab moves past every element on the page. We
+        // synchronously return focus to the trigger *without*
+        // preventing the default, so the browser then advances from
+        // the trigger's DOM position — the natural tab order the user
+        // expects.
+        this.triggerEl?.focus();
         this.closePanel();
         return;
     }
@@ -575,9 +647,10 @@ export class SceSelect extends LitElement {
   private scrollActiveIntoView(): void {
     // Ensure DOM is updated before measuring. `scrollIntoView` is missing
     // in jsdom (and older webviews); guard defensively rather than polyfill
-    // because a missed scroll on a hidden option is harmless.
+    // because a missed scroll on a hidden option is harmless. Option rows
+    // live in the portal root, not the main shadow.
     this.updateComplete.then(() => {
-      const el = this.renderRoot.querySelector(
+      const el = this.panelRoot?.querySelector(
         `.option[data-index="${this.activeIndex}"]`,
       ) as HTMLElement | null;
       if (el && typeof el.scrollIntoView === 'function') {
@@ -605,20 +678,20 @@ export class SceSelect extends LitElement {
         this.activeIndex = this.firstEnabledIndex(list);
       }
     }
+    // Always refresh the portal. Lit's imperative `render()` is a
+    // diff against the previous template, so re-rendering on every
+    // update is as cheap as the main shadow root update. `host: this`
+    // binds `this` in every inline event handler back to the element —
+    // LitElement's own `render()` does this automatically, but the
+    // imperative helper needs it spelled out.
+    if (this.panelRoot) {
+      render(this.renderPanel(), this.panelRoot, { host: this });
+    }
   }
 
   // ----- Render ---------------------------------------------------------
   render() {
     const selected = this.selectedOption;
-    const list = this.filtered;
-
-    const panelStyle = styleMap({
-      left: `${this.geometry.left}px`,
-      top: `${this.geometry.top}px`,
-      width: `${this.geometry.width}px`,
-      maxHeight: `${this.geometry.maxHeight}px`,
-    });
-
     return html`
       <button
         type="button"
@@ -644,7 +717,25 @@ export class SceSelect extends LitElement {
           <path d="M6 8l4 4 4-4" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </button>
+    `;
+  }
 
+  /**
+   * The floating panel template. Rendered into {@link panelRoot} — NOT
+   * into the main shadow root — so ancestor transforms/filters can't
+   * trap our `position: fixed` coordinates. All event handlers are bound
+   * to `this`, so they still reach back into the element's state.
+   */
+  private renderPanel(): TemplateResult {
+    const list = this.filtered;
+    const panelStyle = styleMap({
+      left: `${this.geometry.left}px`,
+      top: `${this.geometry.top}px`,
+      width: `${this.geometry.width}px`,
+      maxHeight: `${this.geometry.maxHeight}px`,
+    });
+
+    return html`
       <div
         class=${classMap({
           panel: true,
