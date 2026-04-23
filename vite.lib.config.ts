@@ -26,6 +26,8 @@ const entries = {
   index: 'src/index.ts',
   'components/loading-bar/index': 'src/components/loading-bar/index.ts',
   'components/loading-bar/react': 'src/components/loading-bar/react.tsx',
+  'components/loading-grid/index': 'src/components/loading-grid/index.ts',
+  'components/loading-grid/react': 'src/components/loading-grid/react.tsx',
   'components/select/index': 'src/components/select/index.ts',
   'components/select/react': 'src/components/select/react.tsx',
 };

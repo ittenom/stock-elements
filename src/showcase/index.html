@@ -18,6 +18,7 @@
           </p>
           <nav class="flex gap-2 text-xs mt-2">
             <a href="#loading-bar" class="px-3 py-1 rounded-full border border-[var(--color-edge)] hover:bg-[var(--color-surface)]">Loading Bar</a>
+            <a href="#loading-grid" class="px-3 py-1 rounded-full border border-[var(--color-edge)] hover:bg-[var(--color-surface)]">Loading Grid</a>
             <a href="#select" class="px-3 py-1 rounded-full border border-[var(--color-edge)] hover:bg-[var(--color-surface)]">Select</a>
           </nav>
         </header>
@@ -94,6 +95,120 @@
             </button>
             <span id="status" class="text-xs text-[var(--color-muted)] self-center ml-2"></span>
           </div>
+
+          <div class="code-sample" data-sample="bar" data-tab="vanilla">
+            <div class="code-sample-tabs" role="tablist" aria-label="Loading Bar code sample">
+              <button type="button" class="code-sample-tab" data-tab="vanilla" aria-pressed="true">Vanilla TS</button>
+              <button type="button" class="code-sample-tab" data-tab="react" aria-pressed="false">React</button>
+              <button type="button" class="code-sample-copy">Copy</button>
+            </div>
+            <pre class="code-sample-pre"><code id="bar-code"></code></pre>
+          </div>
+        </section>
+
+        <!-- =============== LOADING GRID =============== -->
+        <section id="loading-grid" class="flex flex-col gap-8 scroll-mt-8">
+          <div class="flex items-baseline justify-between">
+            <h2 class="text-2xl font-semibold">Loading Grid</h2>
+            <code class="text-xs text-[var(--color-muted)]">&lt;sce-loading-grid&gt;</code>
+          </div>
+          <p class="text-sm text-[var(--color-muted)] max-w-prose">
+            The bar's 2D sibling. Same block cell, same three themes, same
+            randomness / speed / fakeMode / progress rules — laid out as a
+            grid that auto-fits its container on both axes. Use it as a
+            spinner replacement inside cards, tiles, or any square / tall
+            slot where a long horizontal bar wouldn't fit.
+          </p>
+
+          <!-- Resizable preview. Sliders drive the container's width and
+               height; the grid auto-refits because it's responsive. -->
+          <div class="rounded-2xl border border-[var(--color-edge)] bg-[var(--color-surface)] p-6 flex items-center justify-center" style="min-height: 24rem;">
+            <div id="gridSizer" class="flex items-center justify-center" style="width: 18rem; height: 18rem;">
+              <sce-loading-grid id="grid-preview" style="width: 100%; height: 100%; font-size: 1.25rem;"></sce-loading-grid>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="flex flex-col gap-2">
+              <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">Mode</label>
+              <select id="gridMode" class="bg-[var(--color-surface)] border border-[var(--color-edge)] rounded px-3 py-2 text-sm">
+                <option value="HORIZON">HORIZON</option>
+                <option value="NEON">NEON</option>
+                <option value="SPECTRUM">SPECTRUM</option>
+              </select>
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">
+                Randomness <span id="gridRandomnessVal" class="text-[var(--color-fg)] ml-2">0.30</span>
+              </label>
+              <input id="gridRandomness" type="range" min="0" max="1" step="0.05" value="0.3" />
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">
+                Speed <span id="gridSpeedVal" class="text-[var(--color-fg)] ml-2">1.00</span>
+              </label>
+              <input id="gridSpeed" type="range" min="0.25" max="3" step="0.05" value="1" />
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">
+                Progress <span id="gridProgressVal" class="text-[var(--color-fg)] ml-2">0</span>
+              </label>
+              <input id="gridProgress" type="range" min="0" max="100" step="1" value="0" />
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">
+                Width <span id="gridWidthVal" class="text-[var(--color-fg)] ml-2">288px</span>
+              </label>
+              <input id="gridWidth" type="range" min="64" max="480" step="4" value="288" />
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">
+                Height <span id="gridHeightVal" class="text-[var(--color-fg)] ml-2">288px</span>
+              </label>
+              <input id="gridHeight" type="range" min="64" max="480" step="4" value="288" />
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">
+                Cell size <span id="gridCellSizeVal" class="text-[var(--color-fg)] ml-2">20px</span>
+              </label>
+              <input id="gridCellSize" type="range" min="6" max="48" step="1" value="20" />
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-xs uppercase tracking-wider text-[var(--color-muted)]">
+                Cell aspect <span id="gridCellAspectVal" class="text-[var(--color-fg)] ml-2">0.60</span>
+              </label>
+              <input id="gridCellAspect" type="range" min="0.5" max="2" step="0.05" value="0.6" />
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            <button id="gridRunTest" class="px-4 py-2 rounded bg-[var(--color-fg)] text-[var(--color-ink)] text-sm font-medium hover:opacity-90">
+              Run 20s test polling
+            </button>
+            <button id="gridToggleFake" class="px-4 py-2 rounded border border-[var(--color-edge)] text-sm hover:bg-[var(--color-surface)]">
+              Toggle fake mode
+            </button>
+            <button id="gridReset" class="px-4 py-2 rounded border border-[var(--color-edge)] text-sm hover:bg-[var(--color-surface)]">
+              Reset
+            </button>
+            <span id="gridStatus" class="text-xs text-[var(--color-muted)] self-center ml-2"></span>
+          </div>
+
+          <div class="code-sample" data-sample="grid" data-tab="vanilla">
+            <div class="code-sample-tabs" role="tablist" aria-label="Loading Grid code sample">
+              <button type="button" class="code-sample-tab" data-tab="vanilla" aria-pressed="true">Vanilla TS</button>
+              <button type="button" class="code-sample-tab" data-tab="react" aria-pressed="false">React</button>
+              <button type="button" class="code-sample-copy">Copy</button>
+            </div>
+            <pre class="code-sample-pre"><code id="grid-code"></code></pre>
+          </div>
         </section>
 
         <!-- =============== SELECT =============== -->
@@ -164,6 +279,15 @@
               <button data-theme="dark" class="theme-btn px-3 py-1.5 rounded border border-[var(--color-edge)] text-xs">Dark</button>
             </div>
             <p class="text-[11px] text-[var(--color-muted)]">Swaps the <code>--sce-*</code> custom properties on the demo selects — the component itself is unchanged.</p>
+          </div>
+
+          <div class="code-sample" data-sample="select" data-tab="vanilla">
+            <div class="code-sample-tabs" role="tablist" aria-label="Select code sample">
+              <button type="button" class="code-sample-tab" data-tab="vanilla" aria-pressed="true">Vanilla TS</button>
+              <button type="button" class="code-sample-tab" data-tab="react" aria-pressed="false">React</button>
+              <button type="button" class="code-sample-copy">Copy</button>
+            </div>
+            <pre class="code-sample-pre"><code id="select-code"></code></pre>
           </div>
         </section>
       </div>

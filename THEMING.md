@@ -91,7 +91,11 @@ sheet at `:root` and forgetting it.
 | `--sce-shadow-panel` | soft slate | Panel drop shadow. |
 | `--sce-panel-z` | `9999` | Panel stacking context. |
 
-### `<sce-loading-bar>`
+### `<sce-loading-bar>` and `<sce-loading-grid>`
+
+Both elements share the same token contract so a single theme map
+dresses them identically — the grid variant is just the bar's cells
+laid out on two axes.
 
 | Token | Default | Purpose |
 |---|---|---|

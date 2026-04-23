@@ -31,12 +31,16 @@
     "./dist/index.js",
     "./dist/components/loading-bar/index.js",
     "./dist/components/loading-bar/loading-bar.js",
+    "./dist/components/loading-grid/index.js",
+    "./dist/components/loading-grid/loading-grid.js",
     "./dist/components/select/index.js",
     "./dist/components/select/select.js",
     "./dist/chunks/*.js",
     "./src/index.ts",
     "./src/components/loading-bar/index.ts",
     "./src/components/loading-bar/loading-bar.ts",
+    "./src/components/loading-grid/index.ts",
+    "./src/components/loading-grid/loading-grid.ts",
     "./src/components/select/index.ts",
     "./src/components/select/select.ts"
   ],
@@ -59,6 +63,14 @@
     "./loading-bar/react": {
       "types": "./dist/components/loading-bar/react.d.ts",
       "import": "./dist/components/loading-bar/react.js"
+    },
+    "./loading-grid": {
+      "types": "./dist/components/loading-grid/index.d.ts",
+      "import": "./dist/components/loading-grid/index.js"
+    },
+    "./loading-grid/react": {
+      "types": "./dist/components/loading-grid/react.d.ts",
+      "import": "./dist/components/loading-grid/react.js"
     },
     "./select": {
       "types": "./dist/components/select/index.d.ts",

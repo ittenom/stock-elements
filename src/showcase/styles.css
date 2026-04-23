@@ -77,3 +77,103 @@ body {
   border-color: #10b981;
   color: #10b981;
 }
+
+/* ---------------------------------------------------------------------
+   Code-sample block. Shown at the bottom of each showcase section so
+   users can copy an idiomatic call reproducing the live knob values.
+   Two tabs (Vanilla TS / React) + a Copy button. The component content
+   is rendered by `main.ts`.
+   --------------------------------------------------------------------- */
+
+.code-sample {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-edge);
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.code-sample-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.5rem 0;
+  border-bottom: 1px solid var(--color-edge);
+  background: color-mix(in srgb, var(--color-surface) 80%, black);
+}
+
+.code-sample-tab {
+  appearance: none;
+  background: transparent;
+  color: var(--color-muted);
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.4rem 0.75rem 0.45rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 0.25rem 0.25rem 0 0;
+  transition: color 120ms linear, border-color 120ms linear,
+    background-color 120ms linear;
+}
+.code-sample-tab:hover {
+  color: var(--color-fg);
+  background: color-mix(in srgb, var(--color-fg) 6%, transparent);
+}
+.code-sample-tab:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+.code-sample-tab[aria-pressed='true'] {
+  color: var(--color-fg);
+  border-bottom-color: #10b981;
+}
+
+.code-sample-copy {
+  appearance: none;
+  margin-left: auto;
+  margin-bottom: 0.25rem;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--color-muted);
+  background: transparent;
+  border: 1px solid var(--color-edge);
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: color 120ms linear, border-color 120ms linear,
+    background-color 120ms linear;
+}
+.code-sample-copy:hover {
+  color: var(--color-fg);
+  border-color: color-mix(in srgb, var(--color-fg) 30%, var(--color-edge));
+}
+.code-sample-copy:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+.code-sample-copy[data-state='copied'] {
+  color: #10b981;
+  border-color: #10b981;
+}
+
+.code-sample-pre {
+  margin: 0;
+  padding: 1rem 1.1rem;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  overflow-x: auto;
+  color: var(--color-fg);
+  background: var(--color-surface);
+  tab-size: 2;
+}
+.code-sample-pre code {
+  display: block;
+  white-space: pre;
+  font-family: inherit;
+}

@@ -7,4 +7,5 @@
  * bundler can tree-shake unused elements.
  */
 export * from './components/loading-bar/index.js';
+export * from './components/loading-grid/index.js';
 export * from './components/select/index.js';

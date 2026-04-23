@@ -9,6 +9,7 @@ colocated React adapter for every element.
 | Tag | Purpose |
 |---|---|
 | `<sce-loading-bar>` | Terminal-style animated progress indicator with three baked-in themes. |
+| `<sce-loading-grid>` | 2D sibling of the loading bar for square or tall slots — same themes, same rules, auto-fits cells on both axes. Drops in where a spinner would go. |
 | `<sce-select>` | Searchable single-select combobox that clamps its panel to the viewport (unlike native `<select>` and Radix Select, which overflow off-screen with long lists). |
 
 See the showcase (`npm run dev`) for live demos of every element.
