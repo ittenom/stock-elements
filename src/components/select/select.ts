@@ -24,10 +24,13 @@
  *     'sce-close'   CustomEvent<void>
  *
  * Theming
- *   See THEMING.md. All surface colors, radii, and focus accents are
- *   driven by `--sce-*` custom properties on the host, so Stockroom can
- *   map its design tokens once at `:root` and every dropped-in element
- *   inherits the look.
+ *   See THEMING.md. Every surface color, radius, and focus accent is
+ *   read through `var(--sce-*, <default>)` with the default inlined at
+ *   each usage site — never set on `:host`. That way Stockroom can map
+ *   its design tokens once at `:root` and the inherited value wins over
+ *   the in-shadow fallback. (A custom property declared on `:host`
+ *   applies directly to the host element and would otherwise beat the
+ *   inherited value regardless of selector specificity.)
  *
  * Keyboard model
  *   Trigger:        Space / Enter / ↓ opens, types character = open + seed search
@@ -76,35 +79,24 @@ interface PanelGeometry {
 @customElement('sce-select')
 export class SceSelect extends LitElement {
   static styles = css`
-    :host {
-      /* ------------------------------------------------------------
-       * Theming surface. Override any of these at the host (or an
-       * ancestor, since they inherit) to restyle without reaching
-       * into shadow DOM.
-       * ------------------------------------------------------------ */
-      --sce-bg: #ffffff;
-      --sce-fg: #0f172a;
-      --sce-muted: #64748b;
-      --sce-border: #e2e8f0;
-      --sce-border-strong: #cbd5e1;
-      --sce-accent: #10b981;
-      --sce-accent-ring: rgba(16, 185, 129, 0.22);
-      --sce-highlight-bg: rgba(16, 185, 129, 0.12);
-      --sce-highlight-fg: #0f172a;
-      --sce-disabled-fg: #94a3b8;
-      --sce-radius: 0.375rem;
-      --sce-radius-panel: 0.5rem;
-      --sce-font: ui-sans-serif, system-ui, -apple-system, sans-serif;
-      --sce-font-data: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-      --sce-shadow-panel: 0 10px 30px rgba(15, 23, 42, 0.12),
-                          0 2px 6px rgba(15, 23, 42, 0.06);
-      --sce-row-height: 2.125rem;
-      --sce-panel-z: 9999;
+    /* ------------------------------------------------------------
+     * Theming surface
+     * ------------------------------------------------------------
+     * Every color, radius, and type choice is read through
+     * \`var(--sce-*, <default>)\`. The default lives inline at each
+     * usage site — NOT as a \`:host { --sce-*: ... }\` declaration —
+     * because a custom property set on \`:host\` applies directly to
+     * the host element and thereby beats any value the consumer
+     * inherits down from \`:root\` (or any ancestor). Inlining the
+     * fallback gives us the same out-of-the-box look while keeping
+     * the inherited value winnable. See THEMING.md.
+     * ------------------------------------------------------------ */
 
+    :host {
       display: inline-block;
       width: 100%;
-      font-family: var(--sce-font);
-      color: var(--sce-fg);
+      font-family: var(--sce-font, ui-sans-serif, system-ui, -apple-system, sans-serif);
+      color: var(--sce-fg, #0f172a);
       font-size: 0.875rem;
       line-height: 1.25rem;
       position: relative;
@@ -121,29 +113,29 @@ export class SceSelect extends LitElement {
       justify-content: space-between;
       width: 100%;
       gap: 0.5rem;
-      background: var(--sce-bg);
-      color: var(--sce-fg);
-      border: 1px solid var(--sce-border-strong);
-      border-radius: var(--sce-radius);
+      background: var(--sce-bg, #ffffff);
+      color: var(--sce-fg, #0f172a);
+      border: 1px solid var(--sce-border-strong, #cbd5e1);
+      border-radius: var(--sce-radius, 0.375rem);
       padding: 0 0.75rem;
       height: 2.25rem;
       font: inherit;
-      font-family: var(--sce-font-data);
+      font-family: var(--sce-font-data, ui-monospace, 'SF Mono', Menlo, Consolas, monospace);
       text-align: left;
       cursor: pointer;
       transition: border-color 120ms ease, box-shadow 120ms ease;
     }
     .trigger:hover:not(:disabled) {
-      border-color: var(--sce-accent);
+      border-color: var(--sce-accent, #10b981);
     }
     .trigger:focus-visible {
       outline: none;
-      border-color: var(--sce-accent);
-      box-shadow: 0 0 0 3px var(--sce-accent-ring);
+      border-color: var(--sce-accent, #10b981);
+      box-shadow: 0 0 0 3px var(--sce-accent-ring, rgba(16, 185, 129, 0.22));
     }
     .trigger[aria-expanded='true'] {
-      border-color: var(--sce-accent);
-      box-shadow: 0 0 0 3px var(--sce-accent-ring);
+      border-color: var(--sce-accent, #10b981);
+      box-shadow: 0 0 0 3px var(--sce-accent-ring, rgba(16, 185, 129, 0.22));
     }
     .trigger:disabled {
       cursor: not-allowed;
@@ -157,13 +149,13 @@ export class SceSelect extends LitElement {
       white-space: nowrap;
     }
     .trigger .placeholder {
-      color: var(--sce-muted);
+      color: var(--sce-muted, #64748b);
     }
     .chevron {
       flex-shrink: 0;
       width: 1rem;
       height: 1rem;
-      color: var(--sce-muted);
+      color: var(--sce-muted, #64748b);
       transition: transform 150ms ease;
     }
     .trigger[aria-expanded='true'] .chevron {
@@ -173,11 +165,15 @@ export class SceSelect extends LitElement {
     /* --------- Panel --------- */
     .panel {
       position: fixed;
-      z-index: var(--sce-panel-z);
-      background: var(--sce-bg);
-      border: 1px solid var(--sce-border);
-      border-radius: var(--sce-radius-panel);
-      box-shadow: var(--sce-shadow-panel);
+      z-index: var(--sce-panel-z, 9999);
+      background: var(--sce-bg, #ffffff);
+      border: 1px solid var(--sce-border, #e2e8f0);
+      border-radius: var(--sce-radius-panel, 0.5rem);
+      box-shadow: var(
+        --sce-shadow-panel,
+        0 10px 30px rgba(15, 23, 42, 0.12),
+        0 2px 6px rgba(15, 23, 42, 0.06)
+      );
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -203,13 +199,13 @@ export class SceSelect extends LitElement {
       align-items: center;
       gap: 0.5rem;
       padding: 0.5rem 0.625rem;
-      border-bottom: 1px solid var(--sce-border);
+      border-bottom: 1px solid var(--sce-border, #e2e8f0);
     }
     .search svg {
       flex-shrink: 0;
       width: 0.875rem;
       height: 0.875rem;
-      color: var(--sce-muted);
+      color: var(--sce-muted, #64748b);
     }
     .search input {
       flex: 1;
@@ -217,13 +213,13 @@ export class SceSelect extends LitElement {
       border: 0;
       outline: 0;
       background: transparent;
-      color: var(--sce-fg);
+      color: var(--sce-fg, #0f172a);
       font: inherit;
-      font-family: var(--sce-font-data);
+      font-family: var(--sce-font-data, ui-monospace, 'SF Mono', Menlo, Consolas, monospace);
       padding: 0.125rem 0;
     }
     .search input::placeholder {
-      color: var(--sce-muted);
+      color: var(--sce-muted, #64748b);
     }
 
     /* --------- List --------- */
@@ -233,15 +229,15 @@ export class SceSelect extends LitElement {
       padding: 0.25rem;
       /* Thin, themeable scrollbar. */
       scrollbar-width: thin;
-      scrollbar-color: var(--sce-border-strong) transparent;
+      scrollbar-color: var(--sce-border-strong, #cbd5e1) transparent;
     }
     .list::-webkit-scrollbar {
       width: 10px;
     }
     .list::-webkit-scrollbar-thumb {
-      background: var(--sce-border-strong);
+      background: var(--sce-border-strong, #cbd5e1);
       border-radius: 8px;
-      border: 2px solid var(--sce-bg);
+      border: 2px solid var(--sce-bg, #ffffff);
     }
 
     .option {
@@ -249,9 +245,9 @@ export class SceSelect extends LitElement {
       align-items: center;
       gap: 0.5rem;
       padding: 0 0.625rem;
-      height: var(--sce-row-height);
-      border-radius: calc(var(--sce-radius) - 0.0625rem);
-      font-family: var(--sce-font-data);
+      height: var(--sce-row-height, 2.125rem);
+      border-radius: calc(var(--sce-radius, 0.375rem) - 0.0625rem);
+      font-family: var(--sce-font-data, ui-monospace, 'SF Mono', Menlo, Consolas, monospace);
       cursor: pointer;
       user-select: none;
       white-space: nowrap;
@@ -263,7 +259,7 @@ export class SceSelect extends LitElement {
       text-overflow: ellipsis;
     }
     .option .description {
-      color: var(--sce-muted);
+      color: var(--sce-muted, #64748b);
       font-size: 0.8125rem;
       flex-shrink: 0;
       max-width: 50%;
@@ -274,18 +270,18 @@ export class SceSelect extends LitElement {
       flex-shrink: 0;
       width: 0.875rem;
       height: 0.875rem;
-      color: var(--sce-accent);
+      color: var(--sce-accent, #10b981);
       opacity: 0;
     }
     .option[aria-selected='true'] .check {
       opacity: 1;
     }
     .option.active {
-      background: var(--sce-highlight-bg);
-      color: var(--sce-highlight-fg);
+      background: var(--sce-highlight-bg, rgba(16, 185, 129, 0.12));
+      color: var(--sce-highlight-fg, #0f172a);
     }
     .option[aria-disabled='true'] {
-      color: var(--sce-disabled-fg);
+      color: var(--sce-disabled-fg, #94a3b8);
       cursor: not-allowed;
     }
     .option[aria-disabled='true']:hover {
@@ -295,17 +291,17 @@ export class SceSelect extends LitElement {
     .empty {
       padding: 1rem 0.75rem;
       text-align: center;
-      color: var(--sce-muted);
+      color: var(--sce-muted, #64748b);
       font-size: 0.8125rem;
     }
 
     .footer {
       flex-shrink: 0;
       padding: 0.375rem 0.625rem;
-      border-top: 1px solid var(--sce-border);
+      border-top: 1px solid var(--sce-border, #e2e8f0);
       font-size: 0.6875rem;
-      color: var(--sce-muted);
-      font-family: var(--sce-font-data);
+      color: var(--sce-muted, #64748b);
+      font-family: var(--sce-font-data, ui-monospace, 'SF Mono', Menlo, Consolas, monospace);
       letter-spacing: 0.02em;
       display: flex;
       justify-content: space-between;
@@ -313,10 +309,10 @@ export class SceSelect extends LitElement {
     }
     .footer kbd {
       font-family: inherit;
-      background: var(--sce-border);
+      background: var(--sce-border, #e2e8f0);
       border-radius: 3px;
       padding: 0 0.25rem;
-      color: var(--sce-fg);
+      color: var(--sce-fg, #0f172a);
     }
 
     @media (prefers-reduced-motion: reduce) {

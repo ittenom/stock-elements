@@ -9,6 +9,27 @@ This means Stockroom (or any other consumer) can map its design tokens
 onto the `--sce-*` contract **once** and every element that gets dropped
 in inherits the right look without a per-site override.
 
+## How the contract is wired (authoring note)
+
+Inside each component, every themeable value is read through
+`var(--sce-*, <default>)` with the fallback **inlined at the usage
+site**. Defaults are deliberately **not** declared on `:host` — a custom
+property declared on `:host` applies directly to the host element and
+would silently beat any value inherited from `:root` or an ancestor,
+defeating consumer theming. Inline fallbacks give the same out-of-the-box
+appearance while leaving inherited values winnable.
+
+If you're adding a new component, follow the `<sce-select>` pattern:
+
+```css
+/* ✅ Themeable and defaultable from outside. */
+.trigger { background: var(--sce-bg, #ffffff); }
+
+/* ❌ Looks equivalent but silently overrides :root shims. */
+:host { --sce-bg: #ffffff; }
+.trigger { background: var(--sce-bg); }
+```
+
 ## The one-time Stockroom shim
 
 Add this to `client/src/index.css` (or equivalent) so every `<sce-*>`

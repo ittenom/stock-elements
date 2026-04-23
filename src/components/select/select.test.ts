@@ -180,4 +180,46 @@ describe('<sce-select>', () => {
     await el.updateComplete;
     expect(el.shadowRoot!.querySelector('.search')).toBeNull();
   });
+
+  /**
+   * Regression guard for a subtle CSS custom-property pitfall that
+   * caused the Stockroom dark-mode bug (v0.2.0):
+   *
+   * If the shadow stylesheet declares `:host { --sce-bg: #fff; ... }`,
+   * that value applies directly to the host element and SILENTLY BEATS
+   * any value the consumer inherits from `:root` or an ancestor — the
+   * whole `--sce-*` theming contract collapses and the component locks
+   * onto the built-in defaults, no matter what the shim does.
+   *
+   * The correct pattern is `background: var(--sce-bg, #ffffff)` with
+   * the fallback inlined at each usage site. This test scans the
+   * component's aggregate CSS text and fails loudly if any `--sce-*:`
+   * declaration reappears on `:host`.
+   */
+  it('does not pin any --sce-* default on :host (keeps consumer theming winnable)', async () => {
+    const el = await mount();
+    const sheets = (el.shadowRoot!.adoptedStyleSheets ?? []) as CSSStyleSheet[];
+    // Lit may use <style> tags as a fallback; include those for safety.
+    const inlineCss = Array.from(
+      el.shadowRoot!.querySelectorAll('style'),
+    )
+      .map((s) => s.textContent ?? '')
+      .join('\n');
+    const adoptedCss = sheets
+      .flatMap((sheet) => Array.from(sheet.cssRules))
+      .map((rule) => rule.cssText)
+      .join('\n');
+    const allCss = `${inlineCss}\n${adoptedCss}`;
+
+    // Sanity: we actually loaded the component's styles.
+    expect(allCss).toMatch(/\.trigger\s*\{/);
+
+    // Every `:host { ... }` block must be free of `--sce-*:` declarations.
+    const hostBlocks = Array.from(
+      allCss.matchAll(/:host(?:\([^)]*\))?\s*\{([^}]*)\}/g),
+    ).map((m) => m[1]);
+    for (const body of hostBlocks) {
+      expect(body).not.toMatch(/--sce-[\w-]+\s*:/);
+    }
+  });
 });
